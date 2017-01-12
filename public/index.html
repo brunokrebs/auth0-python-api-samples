@@ -1,0 +1,70 @@
+<head>
+
+  <!-- Auth0 lock script -->
+  <script src="https://cdn.auth0.com/js/lock/10.8/lock.min.js"></script>
+
+  <!-- Setting the right viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+</head>
+<body>
+  <h1>hello</h1>
+  <button id="btn-login">Login</button>
+  <img alt="avatar" id="avatar" style="display:none;">
+  <p>Welcome <span id="nickname"></span></p>
+  <button id="ping">Ping</button>
+  <button id="secured-ping">Secured Ping</button>
+
+  <div id="demo"></div>
+  <script>
+    var lock = new Auth0Lock('pe1TeJnjahK0nZR0Q1waZlMCAJg0sNz6', 'brunokrebs.auth0.com');
+
+    var btn_login = document.getElementById('btn-login');
+
+    btn_login.addEventListener('click', function() {
+      lock.show();
+    });
+
+    lock.on("authenticated", function(authResult) {
+      lock.getProfile(authResult.idToken, function(error, profile) {
+        if (error) {
+          // Handle error
+          return;
+        }
+        localStorage.setItem('id_token', authResult.idToken);
+        // Display user information
+        show_profile_info(profile);
+      });
+    });
+
+    var show_profile_info = function(profile) {
+      var avatar = document.getElementById('avatar');
+      document.getElementById('nickname').textContent = profile.nickname;
+      btn_login.style.display = "none";
+      avatar.src = profile.picture;
+      avatar.style.display = "block";
+    };
+
+    document.getElementById('ping').addEventListener('click', function() {
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+         document.getElementById("demo").innerHTML = this.responseText;
+        }
+      };
+      xhttp.open("GET", "/ping", true);
+      xhttp.send();
+    });
+
+    document.getElementById('secured-ping').addEventListener('click', function() {
+      var xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
+         document.getElementById("demo").innerHTML = this.responseText;
+        }
+      };
+      xhttp.open("GET", "/secured/ping", true);
+      xhttp.setRequestHeader('Authorization', 'Bearer ' + localStorage.getItem('id_token'));
+      xhttp.send();
+    });
+  </script>
+</body>

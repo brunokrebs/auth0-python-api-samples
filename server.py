@@ -2,26 +2,16 @@ import jwt
 import os
 
 from functools import wraps
-from flask import Flask, request, jsonify, _app_ctx_stack
-from dotenv import Dotenv
+from flask import Flask, request, jsonify, _app_ctx_stack, send_from_directory
 from flask_cors import cross_origin
 
-try:
-    env = Dotenv('./.env')
-    client_id = env["AUTH0_CLIENT_ID"]
-    client_secret = env["AUTH0_CLIENT_SECRET"]
-except IOError:
-    env = os.environ
-
-app = Flask(__name__)
-
+app = Flask(__name__, static_folder = 'public')
 
 # Format error response and append status code.
 def handle_error(error, status_code):
     resp = jsonify(error)
     resp.status_code = status_code
     return resp
-
 
 def requires_auth(f):
     @wraps(f)
@@ -35,24 +25,20 @@ def requires_auth(f):
         parts = auth.split()
 
         if parts[0].lower() != 'bearer':
-            return handle_error({'code': 'invalid_header',
-                                'description':
-                                    'Authorization header must start with'
-                                    'Bearer'}, 401)
+            error_message = 'Authorization header must start with Bearer'
+            return handle_error({'code': 'invalid_header', 'description': error_message }, 401)
         elif len(parts) == 1:
-            return handle_error({'code': 'invalid_header',
-                                'description': 'Token not found'}, 401)
+            return handle_error({'code': 'invalid_header', 'description': 'Token not found'}, 401)
         elif len(parts) > 2:
-            return handle_error({'code': 'invalid_header',
-                                'description': 'Authorization header must be'
-                                 'Bearer + \s + token'}, 401)
+            error_message = 'Authorization header must be Bearer + \s + token'
+            return handle_error({'code': 'invalid_header', 'description': error_message}, 401)
 
         token = parts[1]
         try:
             payload = jwt.decode(
                 token,
-                client_secret,
-                audience=client_id
+                'Z2SDgQpLzxiADLz3PD6L17kanR2qeqMgMo7gMvYeg8ASJK5H2Pnd4KxfG1Kh4dwp',
+                audience='pe1TeJnjahK0nZR0Q1waZlMCAJg0sNz6'
             )
         except jwt.ExpiredSignature:
             return handle_error({'code': 'token_expired',
@@ -75,8 +61,12 @@ def requires_auth(f):
 
     return decorated
 
-
 # Controllers API
+
+@app.route('/<path:filename>')
+def send_file(filename):
+    return send_from_directory(app.static_folder, filename)
+
 @app.route("/ping")
 @cross_origin(headers=['Content-Type', 'Authorization'])
 def ping():
@@ -88,7 +78,7 @@ def ping():
 @cross_origin(headers=['Access-Control-Allow-Origin', '*'])
 @requires_auth
 def securedPing():
-    return "All good. You only get this message if you're authenticated"
+    return "Indeed you are authorized"
 
 
 if __name__ == "__main__":
